@@ -23,6 +23,17 @@ create_directories = function(plot_dir,
                               chains_dir,
                               graphs_dir,
                               summaries_dir) {
+  # Creates required directory structure for analysis outputs
+  # 
+  # Parameters:
+  #   plot_dir - Main plots directory path
+  #   eda_dir - EDA plots directory path  
+  #   chains_dir - MICE convergence plots directory path
+  #   graphs_dir - Causal graphs directory path
+  #   summaries_dir - Summary statistics directory path
+  #
+  # Returns: NULL (creates directories as side effect)
+  
   dirs = c(plot_dir, eda_dir, chains_dir, graphs_dir, summaries_dir)
   sapply(dirs, dir.create, showWarnings = FALSE, recursive = TRUE)
   cat("Directory setup complete.\n")
@@ -31,6 +42,14 @@ create_directories = function(plot_dir,
 remove_incomplete_observations = function(data, 
                                            threshold = 0.25, 
                                            verbose = TRUE) {
+  # Removes observations with high proportion of missing values
+  #
+  # Parameters:
+  #   data - Input dataset
+  #   threshold - Proportion threshold for missing values (default: 0.25)
+  #   verbose - Print removal summary (default: TRUE)
+  #
+  # Returns: Filtered dataset with incomplete observations removed
   
   # Store original dimensions
   n_obs_original = nrow(data)
@@ -86,7 +105,19 @@ remove_incomplete_observations = function(data,
 #=== DATA PREPARATION FUNCTIONS ============================================####
 
 prepare_ggs_data = function(input_path,
-                            output_path) {
+                            output_path,
+                            save = T
+                            ) {
+  # Processes raw GGS data files into analysis-ready dataset
+  #
+  # Parameters:
+  #   input_path - Directory containing GGS_Wave1.csv, GGS_Wave2.csv, readyforMACHINE.dta
+  #   output_path - Directory for saving processed datasets
+  #   save - Whether to save the data or not (default: TRUE)
+  #
+  # Returns: Final processed dataset (df_final)
+  # Side effects: Saves df_mix.rds and df_final.rds to output_path
+  
   cat("=== PREPARING GGS DATA ===\n")
   
   # Set working directory for data files
@@ -1059,10 +1090,8 @@ prepare_ggs_data = function(input_path,
   dw1 = dw1 %>%
     mutate(
       intentions = case_when(
-        is.na(int_now) & is.na(int_atall_harm) & is.na(int_3yrs_harm) ~ NA_character_,
-        int_now == "yes" | 
-          int_atall_harm %in% c("probably yes", "definitely yes") | 
-          int_3yrs_harm == "yes" ~ "yes",
+        is.na(int_now) & is.na(int_3yrs_harm) ~ NA_character_,
+        int_now == "yes" | int_3yrs_harm == "yes" ~ "yes",
         TRUE ~ "no"
       ),
       intentions = factor(intentions, levels = c("yes", "no"))
@@ -1094,8 +1123,8 @@ prepare_ggs_data = function(input_path,
       marital_status,
       partner_status,
       nr_kids_num, 
-      gave_birth, 
       dead_child,
+      gave_birth,
       age_youngest_num,
       activity_status,
       dwell_ownership_harm, 
@@ -1122,12 +1151,15 @@ prepare_ggs_data = function(input_path,
   
   # Save datasets
   setwd(old_wd)
-  cat("Saving datasets...\n")
-  saveRDS(df_mix, file = paste0(output_path,"/df_mix.rds"))
-  saveRDS(df_final, file =  paste0(output_path,"/df_final.rds"))
+  if (save){
+    cat("Saving datasets...\n")
+    saveRDS(df_mix, file = paste0(output_path,"/df_mix.rds"))
+    saveRDS(df_final, file =  paste0(output_path,"/df_final.rds"))
+    cat("Datasets saved: df_mix.rds, df_final.rds\n")
+  }
+  
   
   cat("Data preparation completed successfully.\n")
-  cat("Datasets saved: df_mix.rds, df_final.rds\n")
   cat("Final dataset dimensions:", nrow(df_final), "x", ncol(df_final), "\n")
   
   return(df_final)
@@ -1135,7 +1167,17 @@ prepare_ggs_data = function(input_path,
 
 #=== EDA FUNCTIONS =========================================================####
 
-perform_eda = function(data, eda_dir = "plots/eda", summaries_dir = "summaries") {
+perform_eda = function(data, eda_dir = "figures/eda", summaries_dir = "summaries") {
+  # Performs comprehensive exploratory data analysis
+  #
+  # Parameters:
+  #   data - Input dataset
+  #   eda_dir - Directory for EDA plots (default: "figures/eda")
+  #   summaries_dir - Directory for summary files (default: "summaries")
+  #
+  # Returns: List with overall_summary, missing_plot, outcome_plot
+  # Side effects: Saves plots and summary CSV files
+  
   cat("=== PERFORMING EXPLORATORY DATA ANALYSIS ===\n")
   
   # Overall summary
@@ -1166,12 +1208,11 @@ perform_eda = function(data, eda_dir = "plots/eda", summaries_dir = "summaries")
   missing_plot = vis_miss(data,
                            warn_large_data = F,
                            sort_miss = T) + 
-    ggtitle("Missing Data Patterns") + 
     theme(
       plot.background = element_rect(fill = "white", color = NA),
       panel.background = element_rect(fill = "white", color = NA),
       plot.margin = margin(t = 20, r = 50, b = 40, l = 20, unit = "pt"),
-      axis.text.x = element_text(size = 8)
+      axis.text.x = element_text(size = 14)
     )
   
   # Save overall plots
@@ -1199,8 +1240,7 @@ perform_eda = function(data, eda_dir = "plots/eda", summaries_dir = "summaries")
     ggplot(aes(x = new_child, fill = new_child)) +
     geom_bar() +
     geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5) +
-    labs(title = "Distribution of New Child Outcome",
-         x = "New Child", y = "Count") +
+    labs(x = "New Child", y = "Count") +
     theme_minimal() +
     theme(
       plot.background = element_rect(fill = "white", color = NA),
@@ -1222,7 +1262,19 @@ perform_eda = function(data, eda_dir = "plots/eda", summaries_dir = "summaries")
   ))
 }
 
-generate_country_summaries = function(data, eda_dir = "plots/eda", summaries_dir = "summaries") {
+generate_country_summaries = function(data, 
+                                      eda_dir = "figures/eda", 
+                                      summaries_dir = "summaries") {
+  # Generates country-specific summaries and visualizations
+  #
+  # Parameters:
+  #   data - Dataset with 'country' variable
+  #   eda_dir - Directory for plots (default: "figures/eda")
+  #   summaries_dir - Directory for summaries (default: "summaries")
+  #
+  # Returns: Named list with country results (summary, plot, n_obs per country)
+  # Side effects: Saves country-specific plots and CSV files
+  
   cat("=== GENERATING COUNTRY-SPECIFIC SUMMARIES ===\n")
   
   country_stats = list()
@@ -1240,8 +1292,7 @@ generate_country_summaries = function(data, eda_dir = "plots/eda", summaries_dir
       ggplot(aes(x = new_child, fill = new_child)) +
       geom_bar() +
       geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5) +
-      labs(title = paste("New Child Distribution -", country),
-           x = "New Child", y = "Count") +
+      labs(x = "New Child", y = "Count") +
       theme_minimal() +
       theme(
         plot.background = element_rect(fill = "white", color = NA),
@@ -1275,8 +1326,7 @@ generate_country_summaries = function(data, eda_dir = "plots/eda", summaries_dir
               hjust = -0.1, size = 3) +
     coord_flip() +
     scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
-    labs(title = "Proportion of New Children by Country",
-         x = "Country", y = "Proportion") +
+    labs(x = "Country", y = "Proportion") +
     theme_minimal() +
     theme(
       plot.background = element_rect(fill = "white", color = NA),
@@ -1295,13 +1345,21 @@ generate_country_summaries = function(data, eda_dir = "plots/eda", summaries_dir
 # === TIER CREATION FUNCTIONS ==============================================####
 
 create_tiers_vector = function(df_names) {
+  # Creates temporal tiers vector for causal discovery
+  #
+  # Parameters:
+  #   df_names - Character vector of variable names
+  #
+  # Returns: Named numeric vector with tier assignments (0-5)
+  # Tiers: 0=background, 1=demographics, 2=past events, 3=current status, 4=intentions, 5=outcome
   
   # Define tier variables (from main.R)
   t0 = c("sex", "age")
   t1 = c("education", "migrant")
-  t2 = c("gave_birth", 'dead_child','nr_kids', 'age_youngest')
-  t3 = c("general_health", 'marital_status', 'partner_status', 'activity_status',
-         'dwell_ownership', 'sett_type', 'partner_sat', 'hh_type')
+  t2 = c('dead_child', 'gave_birth')
+  t3 = c('nr_kids','age_youngest',"general_health", 'marital_status', 
+         'activity_status','dwell_ownership', 'sett_type', 
+         'partner_sat', 'hh_type','partner_status')
   t4 = c("intentions")
   t5 = c("new_child")
   
@@ -1347,9 +1405,30 @@ ggs_discovery = function(
     save.chains = T,
     neighborhood = c(1,2),
     verbose = 1,
-    chains_path = "plots/chains/",
-    graphs_path = "plots/graphs/",
+    chains_path = "figures/chains/",
+    graphs_path = "figures/graphs/",
     seed = 123){
+  # Causal discovery using multiple imputation + temporal PC algorithm
+  #
+  # Parameters:
+  #   data - Dataset with 'country' variable
+  #   tiers - Temporal tier assignments for variables
+  #   alpha - Significance level for independence tests (default: 0.1)
+  #   context.var - Varibles that act like context for all the others (default NULL)
+  #   imput.meth - MICE imputation method (default: "rf")
+  #   m - Number of imputed datasets (default: 25)
+  #   maxit - Maximum MICE iterations (default: 10)
+  #   mincor - Minimum correlation for predictor selection (default: 0.2)
+  #   n.core - Number of CPU cores (default: detectCores())
+  #   save.graph - Save causal graphs (default: TRUE)
+  #   save.chains - Save MICE convergence plots (default: TRUE)
+  #   neighborhood - Subgraph distances to extract (default: c(1,2))
+  #   chains_path - Directory for convergence plots
+  #   graphs_path - Directory for causal graphs
+  #   seed - Random seed (default: 123)
+  #
+  # Returns: Named list by country with discovery, imputation, chains_plot
+  # Side effects: Saves PNG files of graphs and convergence plots
   
   cat("==== MI - tPC ====\n")
   cat("\n__ Imputation Params ___\n",
@@ -1359,7 +1438,8 @@ ggs_discovery = function(
       "mincor for predictors selection:",mincor,"\n")
   cat("\n__ tPC Params ___\n",
       "Sig. lvl:",alpha,"\n",
-      "N. tiers:",length(unique(tiers)),"\n\n")
+      "N. tiers:",length(unique(tiers)),"\n",
+      "Context variables:",context.var,"\n")
   
   results = list()
   
@@ -1392,14 +1472,13 @@ ggs_discovery = function(
       ntree=100
     )
     
-    p_chains = plot_trace(mi_res) +
-      ggtitle(
-        paste0(
-          "MICE - m:",m,
-          ", maxit:",maxit,
-          ", mincor:",mincor,
-          ", method:",imput.meth)) +
-      theme(legend.position = "none")
+    p_chains = plot_trace(mi_res)  +
+      theme(
+            legend.position = "none",    
+            axis.text = element_text(size = 11),         
+            axis.title = element_text(size = 14),        
+            strip.text = element_text(size = 12)         
+          )
     
     if (plot.chains){
       plot(p_chains)
@@ -1407,14 +1486,14 @@ ggs_discovery = function(
     
     if (save.chains){
       ggsave(paste0(chains_path,"/mice-chains-",i,".png"),
-             p_chains, width = 8, height = 10, dpi = 300)
+             p_chains, width = 10, height = 10, dpi = 300)
     }
     
     mi_data = complete(mi_res, action = "all")
     cat("Running tPC...\n")
     disco = tpc::tpc(suffStat=mi_data, 
                      indepTest=micd::mixMItest, 
-                     skel.method = "stable.parallel",
+                     skel.method = "stable",
                      labels=colnames(df),
                      alpha=alpha, 
                      tiers=tiers, 

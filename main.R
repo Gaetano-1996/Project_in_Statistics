@@ -21,10 +21,10 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 source("src.R")
 
 # Define directory structure
-plots_dir = "plots"
-eda_dir = "plots/eda"
-chains_dir = "plots/chains/"
-graphs_dir = "plots/graphs/"
+plots_dir = "figures"
+eda_dir = "figures/eda"
+chains_dir = "figures/chains/"
+graphs_dir = "figures/graphs/"
 summaries_dir = "summaries"
 
 
@@ -57,10 +57,12 @@ if (file.exists(rds_path)) {
 # EXPLORATORY DATA ANALYSIS ================================================####
 
 # Perform overall EDA
-eda_results = perform_eda(df_final, eda_dir = eda_dir, summaries_dir = summaries_dir)
+eda_results = perform_eda(df_final, eda_dir = eda_dir, 
+                          summaries_dir = summaries_dir)
 
 # Generate country-specific summaries
-country_stats = generate_country_summaries(df_final, eda_dir = eda_dir, summaries_dir = summaries_dir)
+country_stats = generate_country_summaries(df_final, eda_dir = eda_dir, 
+                                           summaries_dir = summaries_dir)
 
 # TIER DEFINITION ==========================================================####
 
