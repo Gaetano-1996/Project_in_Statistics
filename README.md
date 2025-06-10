@@ -6,9 +6,9 @@ This repository contains a comprehensive causal discovery analysis investigating
 
 ## 🎯 Research Question
 
-**What are the causal factors that influence people's decisions to have children across different European countries?**
+**What are the causal factors that influence people's decisions to have children across different developed countries?**
 
-This study uses advanced causal discovery methods to move beyond correlational analyses and identify plausible causal relationships in fertility decision-making, accounting for temporal ordering and cultural differences across countries.
+This study uses causal discovery methods to move beyond correlational analyses and identify plausible causal relationships in fertility decision-making, accounting for temporal ordering and cultural differences across countries.
 
 ## 📊 Data Availability
 
@@ -35,7 +35,7 @@ Project_in_Statistics/
 │   ├── eda/                    # Exploratory data analysis plots
 │   ├── chains/                 # MICE convergence diagnostics
 │   └── graphs/                 # Causal discovery results
-├── summaries/                  # Statistical summary files
+└── summaries/                  # Statistical summary files
     ├── overall_summary.csv     # Dataset-wide statistics
     └── summary_{country}.csv   # Country-specific summaries
 ```
@@ -87,7 +87,7 @@ The `main.R` script orchestrates the following pipeline:
 1. **Data Preparation** (`prepare_ggs_data`)
    - Imports and harmonizes GGS Wave 1 and Wave 2 data
    - Creates outcome variable (new child between waves)
-   - Processes 50+ variables across multiple domains
+   - Processes questionnaire items across multiple domains and generate variables
    - Filters observations with >25% missing values
 
 2. **Exploratory Data Analysis** (`perform_eda`, `generate_country_summaries`)
@@ -108,13 +108,20 @@ The `main.R` script orchestrates the following pipeline:
 
 Key parameters in `main.R`:
 ```r
+# Parallel processing
+n.core = parallel::detectCores() 
+
 # Multiple imputation settings
-m = 25          # Number of imputed datasets
-maxit = 25      # MICE iterations
+m = 25               # Number of imputed datasets
+maxit = 25           # MICE iterations
+parallelseed = 123   # random seed for parallel computing
 
 # Causal discovery settings  
-alpha = 0.1     # Significance level
-n.core = parallel::detectCores()  # Parallel processing
+alpha = 0.1                   # Significance level
+context.var = NULL            # allow defintion of context variables
+tiers = tiers                 # tiers specification
+indepTest = micd::mixMItest   # Conditional independence test (mix data + MI) 
+ 
 ```
 
 ## 📈 Output Files
@@ -136,8 +143,8 @@ Variables are organized into temporal tiers:
 - **T0**: Background (sex, age)
 - **T1**: Demographics (education, migration)  
 - **T2**: Past events (previous births, deceased children)
-- **T3**: Current status (health, relationships, housing)
-- **T4**: Intentions (fertility plans)
+- **T3**: Current status (n. of kids, health, relationships, housing)
+- **T4**: Intentions (fertility intentions)
 - **T5**: Outcome (new child)
 
 ### Statistical Approach
