@@ -21,24 +21,38 @@ setwd(dirname(rstudioapi::getSourceEditorContext()$path))
 source("src.R")
 
 # Define directory structure
-plots_dir = "plots2"
-eda_dir = "plots2/eda"
-chains_dir = "plots2/chains/"
-graphs_dir = "plots2/graphs/"
-summaries_dir = "summaries2"
+plots_dir = "plots"
+eda_dir = "plots/eda"
+chains_dir = "plots/chains/"
+graphs_dir = "plots/graphs/"
+summaries_dir = "summaries"
 
 
 # Create directory structure
-create_directories()
+create_directories(
+  plots_dir,
+  eda_dir,
+  chains_dir,
+  graphs_dir,
+  summaries_dir
+)
 
 # DATA PREPARATION =========================================================####
 
 # Prepare GGS data 
 # Returns df_final and saves df_mix.rds, df_final.rds
+# If data is availvable then just fetch it into session
 data_dir = "~/Desktop/Research/Causal Discovery/Data csv"
 save_data = "~/Desktop/Research/Causal Discovery/data_clean"
-df_final = prepare_ggs_data(data_dir, 
-                              save_data)
+rds_path = file.path(save_data, "df_final.rds")
+
+if (file.exists(rds_path)) {
+  df_final = readRDS(rds_path)
+  cat("Loaded existing processed data\n")
+} else {
+  df_final = prepare_ggs_data(data_dir, save_data)
+  cat("Processed and saved new data\n")
+}
 
 # EXPLORATORY DATA ANALYSIS ================================================####
 
@@ -74,13 +88,13 @@ discovery_results = ggs_discovery(
   data = df_final,
   tiers = tiers_numeric,
   alpha = 0.1,
-  m = 2,  # Number of imputations (reduced for faster execution)
-  maxit = 2, # Maximum number of iteration for MICE (reduced for faster execution)
+  m = 25,  # Number of imputations (reduced for faster execution)
+  maxit = 25, # Maximum number of iteration for MICE (reduced for faster execution)
   n.core = parallel::detectCores(),
   plot.graph = TRUE,
-  save.graph = F,
+  save.graph = TRUE,
   plot.chains = TRUE,  # Set to TRUE if you want to see convergence plots
-  save.chains = F,
+  save.chains = TRUE,
   neighborhood = c(1, 2),  # Save both 1-hop and 2-hop neighborhood graphs
   mincor = 0.1,
   chains_path = chains_dir,

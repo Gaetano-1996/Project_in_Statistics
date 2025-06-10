@@ -18,8 +18,12 @@ library(skimr)
 
 #==== UTILITY FUNCTIONS ====================================================####
 
-create_directories = function() {
-  dirs = c("plots2", "plots2/eda", "plots2/chains", "plots2/graphs", "summaries")
+create_directories = function(plot_dir,
+                              eda_dir,
+                              chains_dir,
+                              graphs_dir,
+                              summaries_dir) {
+  dirs = c(plot_dir, eda_dir, chains_dir, graphs_dir, summaries_dir)
   sapply(dirs, dir.create, showWarnings = FALSE, recursive = TRUE)
   cat("Directory setup complete.\n")
 }
@@ -1295,8 +1299,8 @@ create_tiers_vector = function(df_names) {
   # Define tier variables (from main.R)
   t0 = c("sex", "age")
   t1 = c("education", "migrant")
-  t2 = c("gave_birth", 'dead_child')
-  t3 = c('nr_kids', 'age_youngest',"general_health", 'marital_status', 'partner_status', 'activity_status',
+  t2 = c("gave_birth", 'dead_child','nr_kids', 'age_youngest')
+  t3 = c("general_health", 'marital_status', 'partner_status', 'activity_status',
          'dwell_ownership', 'sett_type', 'partner_sat', 'hh_type')
   t4 = c("intentions")
   t5 = c("new_child")
@@ -1426,8 +1430,8 @@ ggs_discovery = function(
     if (save.graph) {
       # Save standard plot
       full_graph_filename = paste0(graphs_path,"/MI-tPC-",i,"-full.png")
-      png(full_graph_filename, width = 2000, height = 1500, res = 500)
-      plot(disco, main = paste0("MI-tPC-",i))
+      png(full_graph_filename, width = 2000, height = 1500, res = 300)
+      plot(disco,labels = names(df), cex = 3, main = paste0("MI-tPC-",i))
       dev.off()
     }
     
@@ -1440,21 +1444,30 @@ ggs_discovery = function(
         names(disco_graph@edgeL) = seq(1:ncol(df))
         var_names = names(df)
         node_labels = setNames(var_names, as.character(1:ncol(df)))
-        nAttrs = list(label = node_labels)
         
-        filename= paste0(graphs_path,paste0("MI-tPC-",i,"-",j,".png"))
-        if (j == 1){
-          res = 300
-        } else{
-          res = 500
-        }
-        png(filename, width = 2000, height = 1500, res = res)
+        # Create fontsize as a named vector
+        node_names = as.character(1:ncol(df))
+        font_size = rep(24, length(node_names))
+        names(font_size) = node_names
+        
+        font_name = rep("Helvetica-Bold", length(node_names))
+        names(font_name) = node_names
+        
+        nAttrs = list(
+          label = node_labels, 
+          fontsize = font_size,
+          fontname = font_name  
+        )
+        
+        filename = paste0(graphs_path, paste0("MI-tPC-", i, "-", j, ".png"))
+        
+        png(filename, width = 2000, height = 1500, res = 300) 
         plotSG(graphObj = disco_graph,
                y = 1,
                dist = j,
                directed = TRUE,
                nodeAttrs = nAttrs,
-               main = "")
+               main = NA)
         dev.off()
       }
     }
