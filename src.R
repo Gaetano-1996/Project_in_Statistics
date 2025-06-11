@@ -24,10 +24,10 @@ create_directories = function(plot_dir,
                               graphs_dir,
                               summaries_dir) {
   # Creates required directory structure for analysis outputs
-  # 
+  #
   # Parameters:
   #   plot_dir - Main plots directory path
-  #   eda_dir - EDA plots directory path  
+  #   eda_dir - EDA plots directory path
   #   chains_dir - MICE convergence plots directory path
   #   graphs_dir - Causal graphs directory path
   #   summaries_dir - Summary statistics directory path
@@ -35,13 +35,16 @@ create_directories = function(plot_dir,
   # Returns: NULL (creates directories as side effect)
   
   dirs = c(plot_dir, eda_dir, chains_dir, graphs_dir, summaries_dir)
-  sapply(dirs, dir.create, showWarnings = FALSE, recursive = TRUE)
+  sapply(dirs,
+         dir.create,
+         showWarnings = FALSE,
+         recursive = TRUE)
   cat("Directory setup complete.\n")
 }
 
-remove_incomplete_observations = function(data, 
-                                           threshold = 0.25, 
-                                           verbose = TRUE) {
+remove_incomplete_observations = function(data,
+                                          threshold = 0.25,
+                                          verbose = TRUE) {
   # Removes observations with high proportion of missing values
   #
   # Parameters:
@@ -71,30 +74,48 @@ remove_incomplete_observations = function(data,
   # With multiple variables, threshold means >threshold_vars variables missing
   threshold_vars = ceiling(threshold * n_vars)
   
-  if(verbose) {
+  if (verbose) {
     cat("=== OBSERVATION REMOVAL SUMMARY ===\n")
     cat(sprintf("Total variables: %d\n", n_vars))
-    cat(sprintf("Threshold: %.1f%% (>%d variables missing)\n", 
-                threshold * 100, threshold_vars))
+    cat(
+      sprintf(
+        "Threshold: %.1f%% (>%d variables missing)\n",
+        threshold * 100,
+        threshold_vars
+      )
+    )
     cat(sprintf("Original observations: %d\n", n_obs_original))
-    cat(sprintf("Observations removed: %d (%.1f%%)\n", n_removed, pct_removed))
-    cat(sprintf("Observations retained: %d (%.1f%%)\n", 
-                nrow(data_filtered), 100 - pct_removed))
+    cat(sprintf(
+      "Observations removed: %d (%.1f%%)\n",
+      n_removed,
+      pct_removed
+    ))
+    cat(sprintf(
+      "Observations retained: %d (%.1f%%)\n",
+      nrow(data_filtered),
+      100 - pct_removed
+    ))
     cat("\n")
     
     # Distribution of missingness in removed observations
-    if(n_removed > 0) {
+    if (n_removed > 0) {
       removed_miss = miss_per_obs[to_remove]
       cat("Missingness in removed observations:\n")
-      cat(sprintf("  Min: %.1f%% (%d vars)\n", 
-                  min(removed_miss) * 100, 
-                  round(min(removed_miss) * n_vars)))
-      cat(sprintf("  Mean: %.1f%% (%d vars)\n", 
-                  mean(removed_miss) * 100, 
-                  round(mean(removed_miss) * n_vars)))
-      cat(sprintf("  Max: %.1f%% (%d vars)\n", 
-                  max(removed_miss) * 100, 
-                  round(max(removed_miss) * n_vars)))
+      cat(sprintf(
+        "  Min: %.1f%% (%d vars)\n",
+        min(removed_miss) * 100,
+        round(min(removed_miss) * n_vars)
+      ))
+      cat(sprintf(
+        "  Mean: %.1f%% (%d vars)\n",
+        mean(removed_miss) * 100,
+        round(mean(removed_miss) * n_vars)
+      ))
+      cat(sprintf(
+        "  Max: %.1f%% (%d vars)\n",
+        max(removed_miss) * 100,
+        round(max(removed_miss) * n_vars)
+      ))
     }
   }
   
@@ -104,10 +125,7 @@ remove_incomplete_observations = function(data,
 
 #=== DATA PREPARATION FUNCTIONS ============================================####
 
-prepare_ggs_data = function(input_path,
-                            output_path,
-                            save = T
-                            ) {
+prepare_ggs_data = function(input_path, output_path, save = T) {
   # Processes raw GGS data files into analysis-ready dataset
   #
   # Parameters:
@@ -141,11 +159,11 @@ prepare_ggs_data = function(input_path,
   dw2 = dw2[!(bcountry %in% c(17))]
   
   # Removing useless birth years
-  dw2 = dw2 %>% 
-    select(-matches("^b253y_1[5-9]$")) 
+  dw2 = dw2 %>%
+    select(-matches("^b253y_1[5-9]$"))
   
   # Adjusting numbers for Czech Republic
-  dw2 = dw2 %>% 
+  dw2 = dw2 %>%
     mutate(bnkids = if_else(bcountry == "28", bnkids - 10, bnkids))
   
   # Creating unique ID
@@ -156,26 +174,22 @@ prepare_ggs_data = function(input_path,
   
   # OUTCOME VARIABLE CREATION
   bcols = c("ID", "bnkids", grep("^b253y_", names(dw2), value = TRUE))
-  dwu = merge(dw1[, c("ID","ayear",'amonth', "acountry",'ankids')], 
-              dw2[, ..bcols], 
-              by = "ID")
+  dwu = merge(dw1[, c("ID", "ayear", 'amonth', "acountry", 'ankids')], dw2[, ..bcols], by = "ID")
   
   by_cols = grep("^b253y_", names(dw2), value = TRUE)
   patterns = "^$|^\\.a$|^\\.b$|^\\.c$"
   dwu = dwu %>%
-    mutate(
-      across(all_of(by_cols),
-             ~ replace(.x, str_detect(.x, patterns), NA)
-      )
-    )
+    mutate(across(all_of(by_cols), ~ replace(.x, str_detect(.x, patterns), NA)))
   
   # OUTCOME DEFINITION
-  dwu = dwu %>% 
+  dwu = dwu %>%
     mutate(
       morekids = bnkids - ankids,
-      birth_year = rowSums(!is.na(across(all_of(by_cols)))) > 0,
-      birth_in_range = rowSums(
-        across(all_of(by_cols), ~ . >= ayear & . <= ayear + 3), na.rm = TRUE),
+      birth_year = rowSums(!is.na(across(all_of(
+        by_cols
+      )))) > 0,
+      birth_in_range = rowSums(across(all_of(by_cols), ~ . >= ayear &
+                                        . <= ayear + 3), na.rm = TRUE),
       newchild = case_when(
         morekids > 0 & birth_in_range ~ 1,
         morekids <= 0 ~ 0,
@@ -184,124 +198,142 @@ prepare_ggs_data = function(input_path,
       )
     )
   
-  dwu = dwu %>% 
-    mutate(
-      new_child = factor(
-        newchild,
-        levels = c(0,1),
-        labels = c("no","yes")
-      )
-    )
+  dwu = dwu %>%
+    mutate(new_child = factor(
+      newchild,
+      levels = c(0, 1),
+      labels = c("no", "yes")
+    ))
   
   # Drop NA in newchild
-  dwu = dwu %>% 
+  dwu = dwu %>%
     filter(!is.na(new_child))
   
   cat("Processing harmonization and variable creation...\n")
   
   # Clean missing patterns
   patterns = "^$|^\\.a$|^\\.b$|^\\.c$|^\\.d$"
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(across(everything(), ~ if_else(str_detect(., patterns), NA, .)))
   
-  # HARMONIZATION AND VARIABLE CREATION 
+  # HARMONIZATION AND VARIABLE CREATION
   
-  # country: country of interview 
-  dw1[,
-      country := factor(
-        acountry,
-        levels = c(11, 12, 13, 14, 15,16,18,19, 21,22,23, 25,26, 28,29),
-        labels = c("Bulgaria", "Russia", "Georgia", "Germany",
-                   "France","Hungary","Netherlands","Romania",
-                   "Austria", "Estonia",'Belgium',"Lithuania",'Poland', "CzechRepubl",
-                   'Sweden')
-      )]
+  # country: country of interview
+  dw1[, country := factor(
+    acountry,
+    levels = c(11, 12, 13, 14, 15, 16, 18, 19, 21, 22, 23, 25, 26, 28, 29),
+    labels = c(
+      "Bulgaria",
+      "Russia",
+      "Georgia",
+      "Germany",
+      "France",
+      "Hungary",
+      "Netherlands",
+      "Romania",
+      "Austria",
+      "Estonia",
+      'Belgium',
+      "Lithuania",
+      'Poland',
+      "CzechRepubl",
+      'Sweden'
+    )
+  )]
   
   # hh_disability: handicap or limited member of the hh
   discols = grep("^ahg9_", names(dw1), value = TRUE)
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       any1    = rowSums(across(all_of(discols), ~ . == 1), na.rm = TRUE) > 0,
-      all_na  = rowSums(is.na(across(all_of(discols)))) == length(discols),
+      all_na  = rowSums(is.na(across(all_of(
+        discols
+      )))) == length(discols),
       dishh   = ifelse(all_na, NA_integer_, as.integer(any1))
-    ) %>% 
-    mutate(
-      hh_disability = factor(dishh,
-                             levels = c(0,1),
-                             labels = c("no","yes"))
-    )
+    ) %>%
+    mutate(hh_disability = factor(
+      dishh,
+      levels = c(0, 1),
+      labels = c("no", "yes")
+    ))
   
   # migrant: born in country of interview
-  dw1 = dw1 %>% 
-    mutate(
-      migrant = factor(
-        a105,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(migrant = factor(
+      a105,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # p_migrant: migrant status  partner
-  dw1 = dw1 %>% 
-    mutate(
-      p_migrant = factor(
-        a374a,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(p_migrant = factor(
+      a374a,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # nr_rooms: number of rooms of R's dwelling
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_rooms_cat = cut(
         as.numeric(dw1$a119),
-        breaks = c(1,2,3,4,5,Inf),
+        breaks = c(1, 2, 3, 4, 5, Inf),
         right = F,
         include.lowest = T,
-        labels = c("1","2","3","4",">=5"),
+        labels = c("1", "2", "3", "4", ">=5"),
         ordered = T
       ),
-      nr_rooms_num = as.numeric(dw1$a119))
+      nr_rooms_num = as.numeric(dw1$a119)
+    )
   
   # dwell_owner: dwelling ownership
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
-      dwell_ownership_harm = factor(case_when(
-        a122 %in% c("1202", "1203", "2", "1801") ~ "not owner",
-        a122 %in% c("1204", "1") ~ "owner",
-        TRUE ~ "other"
-      ), levels = c("owner", "not owner", "other")),
+      dwell_ownership_harm = factor(
+        case_when(
+          a122 %in% c("1202", "1203", "2", "1801") ~ "not owner",
+          a122 %in% c("1204", "1") ~ "owner",
+          TRUE ~ "other"
+        ),
+        levels = c("owner", "not owner", "other")
+      ),
       dwell_ownership = factor(
         as.numeric(a122),
-        levels = c(1,2,3,4,1202,1203,1204,1801),
-        labels = c("owner", "paying rent",
-                   "accommodation rent-free", 'other',
-                   "rent from firm or private person",
-                   "rent and for communal services",
-                   "pay only for communal services",
-                   "not owner")
+        levels = c(1, 2, 3, 4, 1202, 1203, 1204, 1801),
+        labels = c(
+          "owner",
+          "paying rent",
+          "accommodation rent-free",
+          'other',
+          "rent from firm or private person",
+          "rent and for communal services",
+          "pay only for communal services",
+          "not owner"
+        )
       )
     )
   
   # dwell_sat: dwelling satisfaction
-  dw1 = dw1 %>% 
-    mutate(a145 = if_else(as.numeric(a145)>10,NA,a145),
-           dwell_sat = factor(
-             as.numeric(a145),
-             levels = seq(1,10),
-             labels = c('1','2','3','4','5','6','7','8','9','10'),
-             ordered = T
-           ))
+  dw1 = dw1 %>%
+    mutate(
+      a145 = if_else(as.numeric(a145) > 10, NA, a145),
+      dwell_sat = factor(
+        as.numeric(a145),
+        levels = seq(1, 10),
+        labels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'),
+        ordered = T
+      )
+    )
   
   # education: consolidated highest reached education level
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       aeduc2 = case_when(
         a148 == "1501" ~ 0,
         a148 == "1502" ~ 2,
-        a148 %in% c("1503","1504","1505") ~ 3,
-        a148 %in% c("1506","1507")  ~ 5,
+        a148 %in% c("1503", "1504", "1505") ~ 3,
+        a148 %in% c("1506", "1507")  ~ 5,
         aeduc == "6" ~ 5,
         T ~ as.numeric(aeduc)
       ),
@@ -310,56 +342,59 @@ prepare_ggs_data = function(input_path,
         breaks = c(-Inf, 0, 1, 2, 3, 4, 5),
         right = T,
         include.lowest = T,
-        labels = c("pre-primary education",
-                   "primary level",
-                   "lower secondary level",
-                   "upper secondary level",
-                   "post secondary non-tertiary",
-                   "tertiary or higher"),
+        labels = c(
+          "pre-primary education",
+          "primary level",
+          "lower secondary level",
+          "upper secondary level",
+          "post secondary non-tertiary",
+          "tertiary or higher"
+        ),
         ordered = T
       )
     )
   
-  # help_childcare: regular help with childcare 
-  dw1 = dw1 %>% 
-    mutate(
-      help_childcare = factor(
-        a203a,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  # help_childcare: regular help with childcare
+  dw1 = dw1 %>%
+    mutate(help_childcare = factor(
+      a203a,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
-  # gave_birth: have given birth  
-  dw1 = dw1 %>% 
-    mutate(
-      gave_birth = factor(
-        a209,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  # gave_birth: have given birth
+  dw1 = dw1 %>%
+    mutate(gave_birth = factor(
+      a209,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # dead_child: R mention at least 1 dead child
   deadchild_cols = grep("^a254_", names(dw1), value = TRUE)[1:13]
   
   dw1 = dw1 %>%
     mutate(
-      n_na  = rowSums(is.na(across(all_of(deadchild_cols)))),
-      has1  = rowSums(across(all_of(deadchild_cols), ~ .==1), na.rm=TRUE) > 0,
-      all2  = rowSums(across(
-        all_of(deadchild_cols), ~ .==2), na.rm=TRUE) == (length(deadchild_cols) - n_na),
-      dead_child = as.factor(case_when(
-        n_na  == length(deadchild_cols) ~ NA_character_,
-        has1                   ~ "yes",
-        all2                   ~ "no",
-        TRUE                   ~ NA_character_
-      ))
+      n_na  = rowSums(is.na(across(
+        all_of(deadchild_cols)
+      ))),
+      has1  = rowSums(across(all_of(deadchild_cols), ~ . == 1), na.rm =
+                        TRUE) > 0,
+      all2  = rowSums(across(all_of(deadchild_cols), ~ . == 2), na.rm =
+                        TRUE) == (length(deadchild_cols) - n_na),
+      dead_child = as.factor(
+        case_when(
+          n_na  == length(deadchild_cols) ~ NA_character_,
+          has1                   ~ "yes",
+          all2                   ~ "no",
+          TRUE                   ~ NA_character_
+        )
+      )
     ) %>%
     select(-n_na, -has1, -all2)
   
   # yr_coliving: year starting living together
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       yrs_coliv = as.numeric(ayear) - as.numeric(a301y),
       yrs_coliv = if_else(yrs_coliv <= 0, NA, yrs_coliv),
@@ -374,112 +409,136 @@ prepare_ggs_data = function(input_path,
     )
   
   # elapsed_marriage: Time elapsed between start of relationship and marriage
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       elapsed_marriage =  as.numeric(a372bTdiff),
       elapsed_marriage_cat = cut(
         elapsed_marriage,
-        breaks = c(-Inf, 0, 1, 2, 3,4, Inf),
+        breaks = c(-Inf, 0, 1, 2, 3, 4, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1","2","3","4",">=5"),
+        labels = c("0", "1", "2", "3", "4", ">=5"),
         ordered = T
       ),
       elapsed_marriage_num = as.numeric(elapsed_marriage)
     )
   
   # hh_tasks_sat: satisfaction with tasks division in hh
-  dw1 = dw1 %>% 
-    mutate(
-      hh_tasks_sat = factor(
-        a402,
-        levels = c(0,1,2,3,4,5,6,7,8,9,10),
-        labels = c("0","1","2","3","4","5","6","7","8","9","10"),
-        ordered = T
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(hh_tasks_sat = factor(
+      a402,
+      levels = c(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+      labels = c("0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+      ordered = T
+    ))
   
-  # partner_sat: satisfaction with partner 
-  dw1 = dw1 %>% 
+  # partner_sat: satisfaction with partner
+  dw1 = dw1 %>%
     mutate(
-      partner_sat_harm = factor(case_when(
-        a407 %in% c('0','1','2','1805') ~ "not at all satisfied",
-        a407 %in% c('3','4','1804') ~ "less satisfied",
-        a407 %in% c('5','6','1803') ~ 'satisfied',
-        a407 %in% c('7','8','1802') ~ 'mostly satisfied',
-        a407 %in% c('9','10','1801') ~ 'completely satisfied',
-      ), levels = c("not at all satisfied","less satisfied",'satisfied',
-                    'mostly satisfied','completely satisfied'),
-      ordered = T),
+      partner_sat_harm = factor(
+        case_when(
+          a407 %in% c('0', '1', '2', '1805') ~ "not at all satisfied",
+          a407 %in% c('3', '4', '1804') ~ "less satisfied",
+          a407 %in% c('5', '6', '1803') ~ 'satisfied',
+          a407 %in% c('7', '8', '1802') ~ 'mostly satisfied',
+          a407 %in% c('9', '10', '1801') ~ 'completely satisfied',
+        ),
+        levels = c(
+          "not at all satisfied",
+          "less satisfied",
+          'satisfied',
+          'mostly satisfied',
+          'completely satisfied'
+        ),
+        ordered = T
+      ),
       partner_sat = factor(
         as.numeric(a407),
-        levels = c(0:10,
-                   1801:1805),
-        labels = c('0','1','2','3','4','5','6','7','8','9','10',
-                   'completely satisfied', 'mostly satisfied', 'satisfied',
-                   'less satisfied', 'not at all satisfied'),
+        levels = c(0:10, 1801:1805),
+        labels = c(
+          '0',
+          '1',
+          '2',
+          '3',
+          '4',
+          '5',
+          '6',
+          '7',
+          '8',
+          '9',
+          '10',
+          'completely satisfied',
+          'mostly satisfied',
+          'satisfied',
+          'less satisfied',
+          'not at all satisfied'
+        ),
       )
     )
   
   # disability_parents: disability status of the parents
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       disability_mom = if_else(a518 == "1", 1, 0),
       disability_dad = if_else(a538 == "1", 1, 0),
-      disability_sum = rowSums(across(c(disability_mom, disability_dad)), na.rm = TRUE),
-      both_parents_na = is.na(disability_mom) & is.na(disability_dad),
+      disability_sum = rowSums(across(c(
+        disability_mom, disability_dad
+      )), na.rm = TRUE),
+      both_parents_na = is.na(disability_mom) &
+        is.na(disability_dad),
       disability_parents = case_when(
         both_parents_na ~ NA_character_,
         disability_sum == 2 ~ "both",
-        disability_sum == 1 ~ "one", 
+        disability_sum == 1 ~ "one",
         disability_sum == 0 ~ "none"
       ),
-      disability_parents = factor(disability_parents, 
-                                  levels = c("none", "one", "both"),
-                                  labels = c("none", "one parent disabled", 
-                                             "both parents disabled")
-    )) %>%
+      disability_parents = factor(
+        disability_parents,
+        levels = c("none", "one", "both"),
+        labels = c("none", "one parent disabled", "both parents disabled")
+      )
+    ) %>%
     select(-disability_sum, -both_parents_na)
   
   # divorced_parents: whether R's parents are divorced
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       a550 = case_when(
         a550 == "1" ~ 1,
         a550 == "2" ~ 2,
-        a550 %in% c("3","4","5") ~ 3,
+        a550 %in% c("3", "4", "5") ~ 3,
         T ~ as.numeric(a550)
       ),
       divorced_parents = factor(
         a550,
-        levels = c(1,2,3),
-        labels = c("yes","no", "unknown")
+        levels = c(1, 2, 3),
+        labels = c("yes", "no", "unknown")
       )
     )
   
   # nr_brothers: number of brothers
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_bros_cat = cut(
         as.numeric(a5106b_b),
         breaks = c(-Inf, 0, 1, 2, 3, 4, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1","2","3","4",">=5"),
+        labels = c("0", "1", "2", "3", "4", ">=5"),
         ordered = T
       ),
       nr_bros_num = as.numeric(a5106b_b)
     )
   
   # nr_sisters: number of sisters
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_sis_cat = cut(
         as.numeric(a5106b_s),
         breaks = c(-Inf, 0, 1, 2, 3, 4, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1","2","3","4",">=5"),
+        labels = c("0", "1", "2", "3", "4", ">=5"),
         ordered = T
       ),
       nr_sis_num = as.numeric(a5106b_s)
@@ -490,7 +549,9 @@ prepare_ggs_data = function(input_path,
     mutate(
       a5106b_b = as.numeric(a5106b_b),
       a5106b_s = as.numeric(a5106b_s),
-      sibling_sum = rowSums(across(c(a5106b_b, a5106b_s)), na.rm = TRUE),
+      sibling_sum = rowSums(across(c(
+        a5106b_b, a5106b_s
+      )), na.rm = TRUE),
       both_na     = is.na(a5106b_b) & is.na(a5106b_s),
       nr_siblings_num = if_else(both_na, NA_integer_, sibling_sum)
     ) %>%
@@ -500,54 +561,41 @@ prepare_ggs_data = function(input_path,
         breaks       = c(-Inf, 0, 1, 2, 3, 4, Inf),
         right        = TRUE,
         include.lowest = TRUE,
-        labels       = c("0","1","2","3","4",">=5"),
+        labels       = c("0", "1", "2", "3", "4", ">=5"),
         ordered      = TRUE
       )
     ) %>% select(-sibling_sum, -both_na)
   
   # granpas_alive: number of grandparents alive
-  dw1 = dw1 %>% 
-    mutate(
-      granpas_alive = as.factor(if_else(
-        as.numeric(a5107) > 0, "yes","no"
-      ))
-    )
+  dw1 = dw1 %>%
+    mutate(granpas_alive = as.factor(if_else(as.numeric(a5107) > 0, "yes", "no")))
   
   # current_preg: R's current pregnancy status
-  dw1 = dw1 %>% 
-    mutate(
-      current_preg = factor(
-        a602,
-        levels = c(1,2,3),
-        labels = c("yes","no","maybe")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(current_preg = factor(
+      a602,
+      levels = c(1, 2, 3),
+      labels = c("yes", "no", "maybe")
+    ))
   
   # int_now: R's intention to have a child now
-  dw1 = dw1 %>% 
-    mutate(
-      int_now = factor(case_when(
-        a611 == "1" ~ "yes",
-        is.na(a611) ~ NA,
-        T ~ "no"
-      ), 
-      levels = c("yes","no"),
-      labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(int_now = factor(
+      case_when(a611 == "1" ~ "yes", is.na(a611) ~ NA, T ~ "no"),
+      levels = c("yes", "no"),
+      labels = c("yes", "no")
+    ))
   
   # p_int_now: partner's intention to have a child now
-  dw1 = dw1 %>% 
-    mutate(
-      p_int_now = factor(
-        a615,
-        levels = c(1,2,3),
-        labels = c("yes","no", "not sure")
-      ) 
-    )
+  dw1 = dw1 %>%
+    mutate(p_int_now = factor(
+      a615,
+      levels = c(1, 2, 3),
+      labels = c("yes", "no", "not sure")
+    ))
   
   # possibility_child: physically possible to have another baby?
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       possibility_child_harm = as.factor(
         case_when(
@@ -559,105 +607,94 @@ prepare_ggs_data = function(input_path,
       ),
       possibility_child = factor(
         as.numeric(a612),
-        levels = c(1,2,3,4,1501,1601,1602),
-        labels = c("definitely not",
-                   "probably not",
-                   "probably yes",
-                   "definitely yes",
-                   "yes - health risk",
-                   "no",
-                   "yes")
+        levels = c(1, 2, 3, 4, 1501, 1601, 1602),
+        labels = c(
+          "definitely not",
+          "probably not",
+          "probably yes",
+          "definitely yes",
+          "yes - health risk",
+          "no",
+          "yes"
+        )
       )
     )
   
   # p_possibility_child: physically possible to have another baby (partner)?
   labs = names(attr(df.stata$var_616, "labels")[1:4])
-  dw1 = dw1 %>% 
-    mutate(
-      p_possibility_child = factor(
-        a616,
-        levels = c(1,2,3,4),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(p_possibility_child = factor(a616, levels = c(1, 2, 3, 4), labels = labs))
   
   # int_couple: couple intentions
   labs = names(attr(df.stata$var_ertintent, "labels"))
-  dw1 = dw1 %>% 
-    mutate(
-      int_couple = factor(
-        fertintent,
-        levels = c(1,2,3,4),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(int_couple = factor(fertintent, levels = c(1, 2, 3, 4), labels = labs))
   
   # int_3yr: intention to have another baby in the future
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       int_3yrs_harm = case_when(
-        a622 %in% c("1","1602","1801") ~ "yes",
-        a622 %in% c("2","3","4","5","1601","1802","1803") ~ "no"
+        a622 %in% c("1", "1602", "1801") ~ "yes",
+        a622 %in% c("2", "3", "4", "5", "1601", "1802", "1803") ~ "no"
       ),
       int_3yrs_harm = factor(
         int_3yrs_harm,
-        levels = c("yes","no"),
-        labels = c("yes","no")
+        levels = c("yes", "no"),
+        labels = c("yes", "no")
       ),
       int_3yrs = factor(
         a622,
-        levels = c(1,2,3,4,1601,1602,1801,1802,1803),
-        labels = c("definitely not",
-                   "probably not",
-                   "probably yes",
-                   "definitely yes",
-                   "no",
-                   "yes",
-                   "want to have a child within 3 years",
-                   "wants to have a child in > 3 years",
-                   "does not want to have (more) children"
+        levels = c(1, 2, 3, 4, 1601, 1602, 1801, 1802, 1803),
+        labels = c(
+          "definitely not",
+          "probably not",
+          "probably yes",
+          "definitely yes",
+          "no",
+          "yes",
+          "want to have a child within 3 years",
+          "wants to have a child in > 3 years",
+          "does not want to have (more) children"
         )
       )
     )
   
   # int_atall: intention to have a child at all
   labs = names(attr(df.stata$var_624, "labels")[1:4])
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
-      int_atall_harm = if_else(a624 == "1601", 1, 
-                               if_else(a624 == "1602", 4, as.numeric(a624))),
+      int_atall_harm = if_else(a624 == "1601", 1, if_else(a624 == "1602", 4, as.numeric(a624))),
       int_atall_harm = factor(
         int_atall_harm,
-        levels = c(1,2,3,4),
+        levels = c(1, 2, 3, 4),
         labels = labs,
         ordered = T
       ),
       int_atall = factor(
         as.numeric(a624),
-        levels = c(1,2,3,4,1601,1602),
-        labels = c("definitely not",
-                   "probably not",
-                   "probably yes",
-                   "definitely yes",
-                   "no",
-                   "yes"
+        levels = c(1, 2, 3, 4, 1601, 1602),
+        labels = c(
+          "definitely not",
+          "probably not",
+          "probably yes",
+          "definitely yes",
+          "no",
+          "yes"
         )
       )
     )
   
   # child_sex: preferred child sex
   labs = names(attr(df.stata$var_625, "labels")[1:3])
-  dw1 = dw1 %>% 
-    mutate(
-      child_sex = factor(
-        as.numeric(a625),
-        levels = c(1,2,3),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(child_sex = factor(
+      as.numeric(a625),
+      levels = c(1, 2, 3),
+      labels = labs
+    ))
   
   # how_many_more: how many more children
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       a626 = if_else(as.numeric(a626) > 23, NA, a626),
       how_many_more = cut(
@@ -665,129 +702,118 @@ prepare_ggs_data = function(input_path,
         breaks = c(-Inf, 0, 1, 2, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1","2",">=3"),
+        labels = c("0", "1", "2", ">=3"),
         ordered = T
-      ))
+      )
+    )
   
   # general_health: perceived general health status
   labs = names(attr(df.stata$var_701, "labels")[1:5])
   
-  dw1 = dw1 %>% 
-    mutate(
-      general_health = factor(
-        a701,
-        levels = c(1:5),
-        labels = labs,
-        ordered = T
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(general_health = factor(
+      a701,
+      levels = c(1:5),
+      labels = labs,
+      ordered = T
+    ))
   
   # chronic: chronic or longstanding illness
-  dw1 = dw1 %>% 
-    mutate(
-      chronic = factor(
-        a702a,
-        levels = 1:2,
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(chronic = factor(a702a, levels = 1:2, labels = c("yes", "no")))
   
   # health_limitation: Health related limitation or disability
-  dw1 = dw1 %>% 
-    mutate(
-      health_limitation = factor(
-        a703a,
-        levels = 1:2,
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(health_limitation = factor(a703a, levels = 1:2, labels = c("yes", "no")))
   
-  # work_type: part/full time 
-  dw1 = dw1 %>% 
-    mutate(
-      work_type = factor(
-        a834,
-        levels = 1:2,
-        labels = c("full-time","part-time")
-      )
-    )
+  # work_type: part/full time
+  dw1 = dw1 %>%
+    mutate(work_type = factor(
+      a834,
+      levels = 1:2,
+      labels = c("full-time", "part-time")
+    ))
   
   # p_work_type: partner's work type
-  dw1 = dw1 %>% 
-    mutate(
-      p_work_type = factor(
-        a922,
-        levels = 1:2,
-        labels = c("full-time","part-time")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(p_work_type = factor(
+      a922,
+      levels = 1:2,
+      labels = c("full-time", "part-time")
+    ))
   
   # work_sat: work satisfaction
-  dw1 = dw1 %>% 
-    mutate(
-      work_sat = factor(
-        as.numeric(a839),
-        levels = seq(1,10),
-        labels = c('1','2','3','4','5','6','7','8','9','10'),
-        ordered = T
-      )
-    ) 
+  dw1 = dw1 %>%
+    mutate(work_sat = factor(
+      as.numeric(a839),
+      levels = seq(1, 10),
+      labels = c('1', '2', '3', '4', '5', '6', '7', '8', '9', '10'),
+      ordered = T
+    ))
   
   # contract_type: type of work contract
-  dw1 = dw1 %>% 
-    mutate(
-      contract_type = factor(
-        as.numeric(a845),
-        levels = seq(1:4),
-        labels = c('permanent','fixed-term','temporary','no written contract')
-      )
-    ) 
+  dw1 = dw1 %>%
+    mutate(contract_type = factor(
+      as.numeric(a845),
+      levels = seq(1:4),
+      labels = c('permanent', 'fixed-term', 'temporary', 'no written contract')
+    ))
   
   # add_income: additional income
-  dw1 = dw1 %>% 
-    mutate(
-      add_income = factor(
-        as.numeric(a860),
-        levels = seq(1:2),
-        labels = c('yes','no')
-      )
-    ) 
+  dw1 = dw1 %>%
+    mutate(add_income = factor(
+      as.numeric(a860),
+      levels = seq(1:2),
+      labels = c('yes', 'no')
+    ))
   
   # financial: financial situation
-  dw1 = dw1 %>% 
-    mutate(
-      financial = factor(case_when(
-        a1002 %in% c("1","1901") ~ "very difficult",
-        a1002 %in% c("2","1902") ~ "difficult",
-        a1002 %in% c("3","1903") ~ "somewhat difficult",
-        a1002 %in% c("4","1904","1905") ~ "fairly easy",
-        a1002 %in% c("5","1906") ~ "easy",
-        a1002 %in% c("6","1907") ~ "very easy",
-      ), 
-      levels = c("very difficult","difficult",
-                 "somewhat difficult","fairly easy",
-                 "easy","very easy"),
-      labels = c("very difficult","difficult",
-                 "somewhat difficult","fairly easy",
-                 "easy","very easy"),
-      ordered = T)
-    )
+  dw1 = dw1 %>%
+    mutate(financial = factor(
+      case_when(
+        a1002 %in% c("1", "1901") ~ "very difficult",
+        a1002 %in% c("2", "1902") ~ "difficult",
+        a1002 %in% c("3", "1903") ~ "somewhat difficult",
+        a1002 %in% c("4", "1904", "1905") ~ "fairly easy",
+        a1002 %in% c("5", "1906") ~ "easy",
+        a1002 %in% c("6", "1907") ~ "very easy",
+      ),
+      levels = c(
+        "very difficult",
+        "difficult",
+        "somewhat difficult",
+        "fairly easy",
+        "easy",
+        "very easy"
+      ),
+      labels = c(
+        "very difficult",
+        "difficult",
+        "somewhat difficult",
+        "fairly easy",
+        "easy",
+        "very easy"
+      ),
+      ordered = T
+    ))
   
   # Partner variables: sex, education, age
-  part_cols = c("femage",'maleage','femeduc','maleeduc')
+  part_cols = c("femage", 'maleage', 'femeduc', 'maleeduc')
   
-  c1 = (!is.na(dw1$femage) | !is.na(dw1$femeduc)) & 
+  c1 = (!is.na(dw1$femage) | !is.na(dw1$femeduc)) &
     (is.na(dw1$maleage) & is.na(dw1$maleeduc))
   
-  c2 = is.na(dw1$femage) & is.na(dw1$femeduc) & 
+  c2 = is.na(dw1$femage) & is.na(dw1$femeduc) &
     is.na(dw1$maleage) & is.na(dw1$maleeduc)
   
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       p_sex = if_else(c1, "female", if_else(c2, NA_character_, "male")),
-      p_education = if_else(p_sex=="female", femeduc, maleeduc, missing = NA_character_),
-      p_age_num = as.numeric(if_else(p_sex=="female", femage, maleage, missing = NA_character_))
-    ) %>% 
+      p_education = if_else(p_sex == "female", femeduc, maleeduc, missing = NA_character_),
+      p_age_num = as.numeric(
+        if_else(p_sex == "female", femage, maleage, missing = NA_character_)
+      )
+    ) %>%
     mutate(
       p_sex = as.factor(p_sex),
       p_education = factor(
@@ -807,54 +833,45 @@ prepare_ggs_data = function(input_path,
         breaks = c(0, 26, 33, 40, Inf),
         right = TRUE,
         include.lowest = TRUE,
-        labels = c("<=26",
-                   "(26-33]",
-                   "(33-40]",
-                   ">40"),  
+        labels = c("<=26", "(26-33]", "(33-40]", ">40"),
         ordered = TRUE
       )
-    ) %>% 
+    ) %>%
     select(-all_of(part_cols))
   
   # sex: R's sex
-  dw1 = dw1 %>% 
-    mutate(sex =factor(
+  dw1 = dw1 %>%
+    mutate(sex = factor(
       asex,
-      levels = c(1,2),
-      labels = c("male","female")
+      levels = c(1, 2),
+      labels = c("male", "female")
     ))
   
   # age: R's age
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       age_num = as.numeric(aage),
       age_cat = cut(
         as.numeric(aage),
-        breaks = c(-Inf, 18, 26,33,40,Inf),
+        breaks = c(-Inf, 18, 26, 33, 40, Inf),
         right = TRUE,
         include.lowest = TRUE,
-        labels = c("<=18",
-                   "(18-26]",
-                   "(26-33]",
-                   "(33-40]",
-                   ">40"),
+        labels = c("<=18", "(18-26]", "(26-33]", "(33-40]", ">40"),
         ordered = TRUE
       )
     )
   
   # hh_type: type of household
   labs = names(attr(df.stata$var_hhtype, "labels"))[1:9]
-  dw1 = dw1 %>% 
-    mutate(
-      hh_type = factor(
-        ahhtype,
-        levels = c(1,2,3,4,5,6,7,8,9),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(hh_type = factor(
+      ahhtype,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9),
+      labels = labs
+    ))
   
   # hh_size: number of people in the household
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       hh_size_num = as.numeric(ahhsize),
       hh_size_cat = cut(
@@ -862,35 +879,27 @@ prepare_ggs_data = function(input_path,
         breaks = c(-Inf, 1, 2, 3, 4, Inf),
         right = TRUE,
         include.lowest = TRUE,
-        labels = c("1","2","3","4",">=5"),
+        labels = c("1", "2", "3", "4", ">=5"),
         ordered = TRUE
       )
     )
   
   # activity_status: R's activity status
   labs = names(attr(df.stata$var_actstat, "labels"))[1:10]
-  dw1 = dw1 %>% 
-    mutate(
-      activity_status = factor(
-        aactstat,
-        levels = c(1,2,3,4,5,6,7,8,9,10),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(activity_status = factor(
+      aactstat,
+      levels = c(1, 2, 3, 4, 5, 6, 7, 8, 9, 10),
+      labels = labs
+    ))
   
   # marital_status: marital status of R
   labs = names(attr(df.stata$var_marstat, "labels"))[1:4]
-  dw1 = dw1 %>% 
-    mutate(
-      marital_status = factor(
-        amarstat,
-        levels = c(1,2,3,4),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(marital_status = factor(amarstat, levels = c(1, 2, 3, 4), labels = labs))
   
   # nr_kids: number of R's kids
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_kids_num = as.numeric(ankids),
       nr_kids_cat = cut(
@@ -898,13 +907,13 @@ prepare_ggs_data = function(input_path,
         breaks = c(-Inf, 0, 1, 2, Inf),
         right = TRUE,
         include.lowest = TRUE,
-        labels = c("0","1","2",">=3"),
+        labels = c("0", "1", "2", ">=3"),
         ordered = TRUE
       )
     )
   
   # nr_partners: number of R's partners
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_partners_num = as.numeric(anpartner),
       nr_partners_cat = cut(
@@ -912,60 +921,81 @@ prepare_ggs_data = function(input_path,
         breaks =  c(-Inf, 0, 1, Inf),
         right = TRUE,
         include.lowest = TRUE,
-        labels = c("0","1",">=2"),
+        labels = c("0", "1", ">=2"),
         ordered = TRUE
       )
     )
   
   # partner_status: status of partner
   labs = names(attr(df.stata$var_parstat, "labels"))[1:3]
-  dw1 = dw1 %>% 
-    mutate(
-      partner_status = factor(
-        aparstat,
-        levels = c(1,2,3),
-        labels = labs
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(partner_status = factor(aparstat, levels = c(1, 2, 3), labels = labs))
   
   # sett_type: settlement type
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       sett_type_harm = case_when(
-        atype %in% c("2","1201","1202","1203","1301",
-                    "1401","1402","1403","1404",
-                    "1405","1406","1502","1503",
-                    "1504","1801","1802","1803",
-                    "2504","2505") ~ "urban",
-        atype %in% c("1","1204","1407","1408","1409",
-                    "1410","1501","1505",
-                    "1804","1805","2501","2502",
-                    "2503") ~ "rural",
-        T~NA
+        atype %in% c(
+          "2",
+          "1201",
+          "1202",
+          "1203",
+          "1301",
+          "1401",
+          "1402",
+          "1403",
+          "1404",
+          "1405",
+          "1406",
+          "1502",
+          "1503",
+          "1504",
+          "1801",
+          "1802",
+          "1803",
+          "2504",
+          "2505"
+        ) ~ "urban",
+        atype %in% c(
+          "1",
+          "1204",
+          "1407",
+          "1408",
+          "1409",
+          "1410",
+          "1501",
+          "1505",
+          "1804",
+          "1805",
+          "2501",
+          "2502",
+          "2503"
+        ) ~ "rural",
+        T ~ NA
       ),
       sett_type_harm = factor(
         sett_type_harm,
-        levels = c("urban","rural"),
-        labels = c("urban","rural")
+        levels = c("urban", "rural"),
+        labels = c("urban", "rural")
       )
-      )
+    )
   
   # nr_dissol: number of R's dissolved partnerships
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_dissol_num = as.numeric(numdissol),
       nr_dissol_cat = cut(
         as.numeric(numdissol),
-        breaks = c(-Inf, 0,1, Inf),
+        breaks = c(-Inf, 0, 1, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1",">=2"),
+        labels = c("0", "1", ">=2"),
         ordered = T
       )
     )
   
   # nr_marriage: number of R's marriages
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       nr_marriage_num = as.numeric(nummarriage),
       nr_marriage_cat = cut(
@@ -973,118 +1003,115 @@ prepare_ggs_data = function(input_path,
         breaks = c(-Inf, 0, 1, Inf),
         right = T,
         include.lowest = T,
-        labels = c("0","1",">=2"),
+        labels = c("0", "1", ">=2"),
         ordered = T
       )
     )
   
   # child_prev: any children from previous partnerships?
-  dw1 = dw1 %>% 
-    mutate(
-      child_prev = factor(
-        childprevp,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(child_prev = factor(
+      childprevp,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # age_youngest: age of youngest child
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       age_youngest_num = as.numeric(ageyoungest),
       age_youngest_cat = cut(
         ageyoungest,
-        breaks =quantile(as.numeric(ageyoungest),na.rm =T),
+        breaks = quantile(as.numeric(ageyoungest), na.rm = T),
         include.lowest = T,
-        ordered = T)
+        ordered = T
+      )
     )
   
   #age_oldest: age of oldest child
-  dw1 = dw1 %>% 
+  dw1 = dw1 %>%
     mutate(
       age_oldest_num = as.numeric(ageoldest),
       age_oldest_cat = cut(
         ageoldest,
-        breaks =quantile(as.numeric(ageoldest),na.rm =T),
+        breaks = quantile(as.numeric(ageoldest), na.rm = T),
         include.lowest = T,
-        ordered = T)
+        ordered = T
+      )
     )
   
   # cores_child: coresident children
-  dw1 = dw1 %>% 
-    mutate(
-      cores_child = factor(
-        coreschild,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(cores_child = factor(
+      coreschild,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # cores_parent: coresident parents
-  dw1 = dw1 %>% 
-    mutate(
-      cores_parent = factor(
-        coresparen,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(cores_parent = factor(
+      coresparen,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # cores_grandp: coresident grandparents
-  dw1 = dw1 %>% 
-    mutate(
-      cores_grandp = factor(
-        coresgrandp,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(cores_grandp = factor(
+      coresgrandp,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # cores_sibl: coresident siblings
-  dw1 = dw1 %>% 
-    mutate(
-      cores_sibl = factor(
-        coressibl,
-        levels = c(1,2),
-        labels = c("yes","no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(cores_sibl = factor(
+      coressibl,
+      levels = c(1, 2),
+      labels = c("yes", "no")
+    ))
   
   # nonres_child: non-resident children
-  dw1 = dw1 %>% 
-    mutate(
-      nonres_child = factor(
-        if_else(numnonres > 0, 1, 0),
-        levels  = c(1, 0),
-        labels  = c("yes", "no")
-      )
-    )
+  dw1 = dw1 %>%
+    mutate(nonres_child = factor(
+      if_else(numnonres > 0, 1, 0),
+      levels  = c(1, 0),
+      labels  = c("yes", "no")
+    ))
   
   # Partner variables handling
-  partner_vars = c("p_migrant", "partner_sat_harm", "partner_sat", "p_int_now", 
-                   "int_couple", "p_possibility_child", "p_work_type", "p_sex",
-                   "p_education", "p_age_cat", "elapsed_marriage_cat", "yrs_coliv_cat")
+  partner_vars = c(
+    "p_migrant",
+    "partner_sat_harm",
+    "partner_sat",
+    "p_int_now",
+    "int_couple",
+    "p_possibility_child",
+    "p_work_type",
+    "p_sex",
+    "p_education",
+    "p_age_cat",
+    "elapsed_marriage_cat",
+    "yrs_coliv_cat"
+  )
   
   dw1 = dw1 %>%
-    mutate(
-      across(
-        all_of(partner_vars),
-        ~ {
-          orig_levels = levels(.)
-          is_ordered = is.ordered(.)
-          new_levels = if("no partner" %in% orig_levels) orig_levels else c(orig_levels, "no partner")
-          result = case_when(
-            partner_status == "no partner" ~ "no partner",
-            TRUE ~ as.character(.)
-          )
-          if(is_ordered) {
-            ordered(result, levels = new_levels)
-          } else {
-            factor(result, levels = new_levels)
-          }
-        }
-      )
-    )
+    mutate(across(all_of(partner_vars), ~ {
+      orig_levels = levels(.)
+      is_ordered = is.ordered(.)
+      new_levels = if ("no partner" %in% orig_levels)
+        orig_levels
+      else
+        c(orig_levels, "no partner")
+      result = case_when(partner_status == "no partner" ~ "no partner",
+                         TRUE ~ as.character(.))
+      if (is_ordered) {
+        ordered(result, levels = new_levels)
+      } else {
+        factor(result, levels = new_levels)
+      }
+    }))
   
   # Merging intentions
   dw1 = dw1 %>%
@@ -1098,41 +1125,39 @@ prepare_ggs_data = function(input_path,
     )
   
   # Final data merge and selection
-  df = merge(dw1,
-             dwu[,c("ID", "new_child")],
-             by = "ID")
+  df = merge(dw1, dwu[, c("ID", "new_child")], by = "ID")
   
   df = df %>%
     filter(!is.na(new_child))
   
   # Clean unused levels
-  df = df %>% 
+  df = df %>%
     mutate(across(where(is.factor), fct_drop))
   
   # DATASET DEFINITION
-  df_mix = df %>% 
-    filter(!country %in% c("Hungary","Bulgaria","CzechRepubl")) %>% 
+  df_mix = df %>%
+    filter(!country %in% c("Hungary", "Bulgaria", "CzechRepubl")) %>%
     select(
-      new_child, 
-      country, 
-      sex, 
+      new_child,
+      country,
+      sex,
       partner_sat_harm,
-      migrant, 
-      education, 
-      age_num, 
+      migrant,
+      education,
+      age_num,
       marital_status,
       partner_status,
-      nr_kids_num, 
+      nr_kids_num,
       dead_child,
       gave_birth,
       age_youngest_num,
       activity_status,
-      dwell_ownership_harm, 
-      general_health, 
-      hh_type, 
+      dwell_ownership_harm,
+      general_health,
+      hh_type,
       sett_type_harm,
       intentions
-    ) %>% 
+    ) %>%
     rename(
       partner_sat = partner_sat_harm,
       age = age_num,
@@ -1140,34 +1165,40 @@ prepare_ggs_data = function(input_path,
       age_youngest = age_youngest_num,
       dwell_ownership = dwell_ownership_harm,
       sett_type = sett_type_harm
-    ) 
+    )
   
-  df_mix = df_mix %>% 
+  df_mix = df_mix %>%
     mutate(across(where(is.factor), fct_drop))
   
-  # Apply missing data filtering 
+  # Apply missing data filtering
   cat("Filtering observations with >25% missing values...\n")
   df_final = remove_incomplete_observations(df_mix, threshold = 0.25, verbose = TRUE)
   
   # Save datasets
   setwd(old_wd)
-  if (save){
+  if (save) {
     cat("Saving datasets...\n")
-    saveRDS(df_mix, file = paste0(output_path,"/df_mix.rds"))
-    saveRDS(df_final, file =  paste0(output_path,"/df_final.rds"))
+    saveRDS(df_mix, file = paste0(output_path, "/df_mix.rds"))
+    saveRDS(df_final, file =  paste0(output_path, "/df_final.rds"))
     cat("Datasets saved: df_mix.rds, df_final.rds\n")
   }
   
   
   cat("Data preparation completed successfully.\n")
-  cat("Final dataset dimensions:", nrow(df_final), "x", ncol(df_final), "\n")
+  cat("Final dataset dimensions:",
+      nrow(df_final),
+      "x",
+      ncol(df_final),
+      "\n")
   
   return(df_final)
 }
 
 #=== EDA FUNCTIONS =========================================================####
 
-perform_eda = function(data, eda_dir = "figures/eda", summaries_dir = "summaries") {
+perform_eda = function(data,
+                       eda_dir = "figures/eda",
+                       summaries_dir = "summaries") {
   # Performs comprehensive exploratory data analysis
   #
   # Parameters:
@@ -1205,25 +1236,36 @@ perform_eda = function(data, eda_dir = "figures/eda", summaries_dir = "summaries
   
   # Missing data patterns (whole dataset)
   cat("Analyzing missing data patterns...\n")
-  missing_plot = vis_miss(data,
-                           warn_large_data = F,
-                           sort_miss = T) + 
+  missing_plot = vis_miss(data, warn_large_data = F, sort_miss = T) +
     theme(
       plot.background = element_rect(fill = "white", color = NA),
       panel.background = element_rect(fill = "white", color = NA),
-      plot.margin = margin(t = 20, r = 50, b = 40, l = 20, unit = "pt"),
+      plot.margin = margin(
+        t = 20,
+        r = 50,
+        b = 40,
+        l = 20,
+        unit = "pt"
+      ),
       axis.text.x = element_text(size = 14)
     )
   
   # Save overall plots
-  ggsave(file.path(eda_dir, "missing_patterns.png"), missing_plot, 
-         width = 12, height = 9, dpi = 300)
+  ggsave(
+    file.path(eda_dir, "missing_patterns.png"),
+    missing_plot,
+    width = 12,
+    height = 9,
+    dpi = 300
+  )
   
   # Missing data patterns (by country)
-  missing_plot_country = vis_miss(data, 
-                                  warn_large_data = F,
-                                  sort_miss = T,
-                                  facet = country) +
+  missing_plot_country = vis_miss(
+    data,
+    warn_large_data = F,
+    sort_miss = T,
+    facet = country
+  ) +
     theme(
       plot.background = element_rect(fill = "white", color = NA),
       panel.background = element_rect(fill = "white", color = NA),
@@ -1232,8 +1274,13 @@ perform_eda = function(data, eda_dir = "figures/eda", summaries_dir = "summaries
       strip.text = element_text(size = 14)
     )
   
-  ggsave(file.path(eda_dir, "missing_patterns_bycountry.png"), missing_plot_country, 
-         width = 12, height = 9, dpi = 300)
+  ggsave(
+    file.path(eda_dir, "missing_patterns_bycountry.png"),
+    missing_plot_country,
+    width = 12,
+    height = 9,
+    dpi = 300
+  )
   
   # Outcome distribution
   outcome_plot = data %>%
@@ -1247,23 +1294,33 @@ perform_eda = function(data, eda_dir = "figures/eda", summaries_dir = "summaries
       panel.background = element_rect(fill = "white", color = NA)
     )
   
-  ggsave(file.path(eda_dir, "outcome_distribution.png"), outcome_plot,
-         width = 8, height = 6, dpi = 300)
+  ggsave(
+    file.path(eda_dir, "outcome_distribution.png"),
+    outcome_plot,
+    width = 8,
+    height = 6,
+    dpi = 300
+  )
   
   # Save overall summary
-  write_csv(as.data.frame(overall_summary), file.path(summaries_dir, "overall_summary.csv"))
+  write_csv(
+    as.data.frame(overall_summary),
+    file.path(summaries_dir, "overall_summary.csv")
+  )
   
   cat("EDA completed successfully.\n")
   
-  return(list(
-    overall_summary = overall_summary,
-    missing_plot = missing_plot,
-    outcome_plot = outcome_plot
-  ))
+  return(
+    list(
+      overall_summary = overall_summary,
+      missing_plot = missing_plot,
+      outcome_plot = outcome_plot
+    )
+  )
 }
 
-generate_country_summaries = function(data, 
-                                      eda_dir = "figures/eda", 
+generate_country_summaries = function(data,
+                                      eda_dir = "figures/eda",
                                       summaries_dir = "summaries") {
   # Generates country-specific summaries and visualizations
   #
@@ -1279,7 +1336,7 @@ generate_country_summaries = function(data,
   
   country_stats = list()
   
-  for(country in unique(data$country)) {
+  for (country in unique(data$country)) {
     cat("Processing country:", country, "\n")
     
     country_data = data %>% filter(country == !!country)
@@ -1291,7 +1348,9 @@ generate_country_summaries = function(data,
     outcome_country = country_data %>%
       ggplot(aes(x = new_child, fill = new_child)) +
       geom_bar() +
-      geom_text(stat = 'count', aes(label = ..count..), vjust = -0.5) +
+      geom_text(stat = 'count',
+                aes(label = ..count..),
+                vjust = -0.5) +
       labs(x = "New Child", y = "Count") +
       theme_minimal() +
       theme(
@@ -1300,11 +1359,16 @@ generate_country_summaries = function(data,
       )
     
     # Save country-specific files
-    ggsave(file.path(eda_dir, paste0("outcome_", country, ".png")), outcome_country,
-           width = 8, height = 6, dpi = 300)
+    ggsave(
+      file.path(eda_dir, paste0("outcome_", country, ".png")),
+      outcome_country,
+      width = 8,
+      height = 6,
+      dpi = 300
+    )
     
-    write_csv(as.data.frame(country_summary), 
-             file.path(summaries_dir, paste0("summary_", country, ".csv")))
+    write_csv(as.data.frame(country_summary),
+              file.path(summaries_dir, paste0("summary_", country, ".csv")))
     
     country_stats[[country]] = list(
       summary = country_summary,
@@ -1322,8 +1386,9 @@ generate_country_summaries = function(data,
     filter(new_child == "yes") %>%
     ggplot(aes(x = reorder(country, prop), y = prop)) +
     geom_col(fill = "steelblue") +
-    geom_text(aes(label = scales::percent(prop, accuracy = 0.1)), 
-              hjust = -0.1, size = 3) +
+    geom_text(aes(label = scales::percent(prop, accuracy = 0.1)),
+              hjust = -0.1,
+              size = 3) +
     coord_flip() +
     scale_y_continuous(expand = expansion(mult = c(0, 0.15))) +
     labs(x = "Country", y = "Proportion") +
@@ -1331,11 +1396,22 @@ generate_country_summaries = function(data,
     theme(
       plot.background = element_rect(fill = "white", color = NA),
       panel.background = element_rect(fill = "white", color = NA),
-      plot.margin = margin(t = 20, r = 50, b = 20, l = 20, unit = "pt")
+      plot.margin = margin(
+        t = 20,
+        r = 50,
+        b = 20,
+        l = 20,
+        unit = "pt"
+      )
     )
   
-  ggsave(file.path(eda_dir, "country_comparison.png"), country_comparison,
-         width = 10, height = 6, dpi = 300)
+  ggsave(
+    file.path(eda_dir, "country_comparison.png"),
+    country_comparison,
+    width = 10,
+    height = 6,
+    dpi = 300
+  )
   
   cat("Country summaries completed successfully.\n")
   
@@ -1353,12 +1429,22 @@ create_tiers_vector = function(df_names) {
   # Returns: Named numeric vector with tier assignments (0-5)
   # Tiers: 0=background, 1=demographics, 2=past events, 3=current status, 4=intentions, 5=outcome
   
-  # Define tier variables 
+  # Define tier variables
   t0 = c("sex", "age")
   t1 = c("education", "migrant")
   t2 = c("gave_birth", "dead_child")
-  t3 = c("general_health", 'marital_status','activity_status','dwell_ownership',
-          'sett_type', 'partner_sat', 'hh_type','partner_status','nr_kids','age_youngest')
+  t3 = c(
+    "general_health",
+    'marital_status',
+    'activity_status',
+    'dwell_ownership',
+    'sett_type',
+    'partner_sat',
+    'hh_type',
+    'partner_status',
+    'nr_kids',
+    'age_youngest'
+  )
   t4 = c("intentions")
   t5 = c("new_child")
   
@@ -1369,15 +1455,16 @@ create_tiers_vector = function(df_names) {
   # Assign tier numbers to matching variables
   tiers_vector[names(tiers_vector) %in% t0] = 0
   tiers_vector[names(tiers_vector) %in% t1] = 1
-  tiers_vector[names(tiers_vector) %in% t2] = 2  
+  tiers_vector[names(tiers_vector) %in% t2] = 2
   tiers_vector[names(tiers_vector) %in% t3] = 3
   tiers_vector[names(tiers_vector) %in% t4] = 4
   tiers_vector[names(tiers_vector) %in% t5] = 5
   
   # Check for unmatched variables
   unmatched = names(tiers_vector)[is.na(tiers_vector)]
-  if(length(unmatched) > 0) {
-    warning("Unmatched variables found: ", paste(unmatched, collapse = ", "))
+  if (length(unmatched) > 0) {
+    warning("Unmatched variables found: ",
+            paste(unmatched, collapse = ", "))
   }
   
   # Remove unmatched variables (NA values)
@@ -1388,25 +1475,24 @@ create_tiers_vector = function(df_names) {
 
 # === DISCOVERY FUNCTIONS ==================================================####
 
-ggs_discovery = function(
-    data,
-    tiers = NULL,
-    alpha = 0.1,
-    context.var = NULL,
-    imput.meth = "rf",
-    maxit = 10,
-    m = 25,
-    mincor = 0.2,
-    n.core = detectCores(),
-    plot.graph = F,
-    save.graph = T,
-    plot.chains = T,
-    save.chains = T,
-    neighborhood = c(1,2),
-    verbose = 1,
-    chains_path = "figures/chains/",
-    graphs_path = "figures/graphs/",
-    seed = 123){
+ggs_discovery = function(data,
+                         tiers = NULL,
+                         alpha = 0.1,
+                         context.var = NULL,
+                         imput.meth = "rf",
+                         maxit = 10,
+                         m = 25,
+                         mincor = 0.2,
+                         n.core = detectCores(),
+                         plot.graph = F,
+                         save.graph = T,
+                         plot.chains = T,
+                         save.chains = T,
+                         neighborhood = c(1, 2),
+                         verbose = 1,
+                         chains_path = "figures/chains/",
+                         graphs_path = "figures/graphs/",
+                         seed = 123) {
   # Causal discovery using multiple imputation + temporal PC algorithm
   #
   # Parameters:
@@ -1430,93 +1516,124 @@ ggs_discovery = function(
   # Side effects: Saves PNG files of graphs and convergence plots
   
   cat("==== MI - tPC ====\n")
-  cat("\n__ Imputation Params ___\n",
-      "N. imputed dataset:",m,"\n",
-      "Max N. iteration MICE:",maxit,"\n",
-      "Imputation method:",imput.meth,"\n",
-      "mincor for predictors selection:",mincor,"\n")
-  cat("\n__ tPC Params ___\n",
-      "Sig. lvl:",alpha,"\n",
-      "N. tiers:",length(unique(tiers)),"\n",
-      "Context variables:",context.var,"\n\n")
+  cat(
+    "\n__ Imputation Params ___\n",
+    "N. imputed dataset:",
+    m,
+    "\n",
+    "Max N. iteration MICE:",
+    maxit,
+    "\n",
+    "Imputation method:",
+    imput.meth,
+    "\n",
+    "mincor for predictors selection:",
+    mincor,
+    "\n"
+  )
+  cat(
+    "\n__ tPC Params ___\n",
+    "Sig. lvl:",
+    alpha,
+    "\n",
+    "N. tiers:",
+    length(unique(tiers)),
+    "\n",
+    "Context variables:",
+    context.var,
+    "\n\n"
+  )
   
   results = list()
   
-  for (i in unique(data$country)){
-    cat("=== Country: ",i,"===\n")
+  for (i in unique(data$country)) {
+    cat("=== Country: ", i, "===\n")
     # subset data
-    df = data %>% 
-      filter(country == i) %>% 
+    df = data %>%
+      filter(country == i) %>%
       select(-country)
     
-    cat("N. observations:",nrow(df),"\n")
+    cat("N. observations:", nrow(df), "\n")
     
     # predictors for imputation model
-    pred = quickpred(
-      df,
-      mincor = mincor
-    )
+    pred = quickpred(df, mincor = mincor)
     
-    # multiple imputation 
-    n.core = min(detectCores()-1,n.core)
+    # multiple imputation
+    n.core = min(detectCores() - 1, n.core)
     cat("Running mice...\n")
     mi_res = futuremice(
       df,
-      m=m,
+      m = m,
       maxit = maxit,
       predictorMatrix = pred,
-      method=imput.meth,
+      method = imput.meth,
       parallelseed = seed,
       n.core = n.core,
-      ntree=100
+      ntree = 100
     )
     
     p_chains = plot_trace(mi_res)  +
       theme(
-            legend.position = "none",    
-            axis.text = element_text(size = 11),         
-            axis.title = element_text(size = 14),        
-            strip.text = element_text(size = 12)         
-          )
+        legend.position = "none",
+        axis.text = element_text(size = 11),
+        axis.title = element_text(size = 14),
+        strip.text = element_text(size = 12)
+      )
     
-    if (plot.chains){
+    if (plot.chains) {
       plot(p_chains)
     }
     
-    if (save.chains){
-      ggsave(paste0(chains_path,"/mice-chains-",i,".png"),
-             p_chains, width = 10, height = 10, dpi = 300)
+    if (save.chains) {
+      ggsave(
+        paste0(chains_path, "/mice-chains-", i, ".png"),
+        p_chains,
+        width = 10,
+        height = 10,
+        dpi = 300
+      )
     }
     
     mi_data = complete(mi_res, action = "all")
     cat("Running tPC...\n")
     set.seed(seed) # just in case
-    disco = tpc::tpc(suffStat=mi_data, 
-                     indepTest=micd::mixMItest,
-                     labels=colnames(df),
-                     alpha=alpha, 
-                     tiers=tiers, 
-                     context.all = context.var,
-                     verbose=if_else(verbose>1,T,F),
-                     numCores = n.core)
+    disco = tpc::tpc(
+      suffStat = mi_data,
+      indepTest = micd::mixMItest,
+      labels = colnames(df),
+      alpha = alpha,
+      tiers = tiers,
+      context.all = context.var,
+      verbose = if_else(verbose > 1, T, F),
+      numCores = n.core
+    )
     
-    if (plot.graph){
+    if (plot.graph) {
       plot(disco, main = "")
     }
     
     # Save full causal graph (new feature)
     if (save.graph) {
       # Save standard plot
-      full_graph_filename = paste0(graphs_path,"/MI-tPC-",i,"-full.png")
-      png(full_graph_filename, width = 2000, height = 1500, res = 300)
-      plot(disco,labels = names(df), cex = 3, main = paste0("MI-tPC-",i))
+      full_graph_filename = paste0(graphs_path, "/MI-tPC-", i, "-full.png")
+      png(
+        full_graph_filename,
+        width = 2000,
+        height = 1500,
+        res = 300
+      )
+      plot(
+        disco,
+        labels = names(df),
+        cex = 3,
+        main = paste0("MI-tPC-", i)
+      )
       dev.off()
     }
     
     # Save neighborhood graphs
-    if (save.graph & !is.null(neighborhood)){
-      for (j in neighborhood){
-        
+    if (save.graph & !is.null(neighborhood)) {
+      for (j in neighborhood) {
         disco_graph = as(disco@graph, "graphNEL")
         disco_graph@nodes = seq(1:ncol(df))
         names(disco_graph@edgeL) = seq(1:ncol(df))
@@ -1531,21 +1648,24 @@ ggs_discovery = function(
         font_name = rep("Helvetica-Bold", length(node_names))
         names(font_name) = node_names
         
-        nAttrs = list(
-          label = node_labels, 
-          fontsize = font_size,
-          fontname = font_name  
-        )
+        nAttrs = list(label = node_labels,
+                      fontsize = font_size,
+                      fontname = font_name)
         
         filename = paste0(graphs_path, paste0("MI-tPC-", i, "-", j, ".png"))
         
-        png(filename, width = 2000, height = 1500, res = 300) 
-        plotSG(graphObj = disco_graph,
-               y = 1,
-               dist = j,
-               directed = TRUE,
-               nodeAttrs = nAttrs,
-               main = NA)
+        png(filename,
+            width = 2000,
+            height = 1500,
+            res = 300)
+        plotSG(
+          graphObj = disco_graph,
+          y = 1,
+          dist = j,
+          directed = TRUE,
+          nodeAttrs = nAttrs,
+          main = NA
+        )
         dev.off()
       }
     }
