@@ -1,0 +1,20 @@
+skim_type,skim_variable,n_missing,complete_rate,factor.ordered,factor.n_unique,factor.top_counts,numeric.mean,numeric.sd,numeric.p0,numeric.p25,numeric.p50,numeric.p75,numeric.p100,numeric.hist
+factor,new_child,0,1,FALSE,2,"no: 3349, yes: 391",NA,NA,NA,NA,NA,NA,NA,NA
+factor,country,0,1,FALSE,1,"Rus: 3740, Geo: 0, Ger: 0, Fra: 0",NA,NA,NA,NA,NA,NA,NA,NA
+factor,sex,0,1,FALSE,2,"fem: 2317, mal: 1423",NA,NA,NA,NA,NA,NA,NA,NA
+factor,partner_sat,144,0.9614973262032086,TRUE,6,"com: 1319, mos: 858, no : 786, sat: 465",NA,NA,NA,NA,NA,NA,NA,NA
+factor,migrant,0,1,FALSE,2,"yes: 3398, no: 342",NA,NA,NA,NA,NA,NA,NA,NA
+factor,education,219,0.9414438502673796,TRUE,6,"ter: 1478, upp: 1141, pos: 690, low: 205",NA,NA,NA,NA,NA,NA,NA,NA
+factor,marital_status,38,0.9898395721925134,FALSE,4,"mar: 2159, nev: 1008, div: 441, wid: 94",NA,NA,NA,NA,NA,NA,NA,NA
+factor,partner_status,6,0.9983957219251337,FALSE,3,"co-: 2495, no : 786, non: 453",NA,NA,NA,NA,NA,NA,NA,NA
+factor,dead_child,855,0.7713903743315508,FALSE,2,"no: 2844, yes: 41",NA,NA,NA,NA,NA,NA,NA,NA
+factor,gave_birth,0,1,FALSE,2,"no: 3254, yes: 486",NA,NA,NA,NA,NA,NA,NA,NA
+factor,activity_status,27,0.9927807486631016,FALSE,9,"emp: 2668, une: 321, loo: 251, stu: 218",NA,NA,NA,NA,NA,NA,NA,NA
+factor,dwell_ownership,0,1,FALSE,3,"own: 2412, not: 1271, oth: 57",NA,NA,NA,NA,NA,NA,NA,NA
+factor,general_health,0,1,TRUE,5,"fai: 1864, goo: 1536, bad: 182, ver: 147",NA,NA,NA,NA,NA,NA,NA,NA
+factor,hh_type,0,1,FALSE,9,"cou: 1979, liv: 528, sin: 348, cou: 261",NA,NA,NA,NA,NA,NA,NA,NA
+factor,sett_type,0,1,FALSE,2,"urb: 2554, rur: 1186",NA,NA,NA,NA,NA,NA,NA,NA
+factor,intentions,420,0.8877005347593583,FALSE,2,"yes: 2264, no: 1056",NA,NA,NA,NA,NA,NA,NA,NA
+numeric,age,0,1,NA,NA,NA,33.077272727272735,8.000980619589804,18,27,34,40,45,▅▅▆▆▇
+numeric,nr_kids,0,1,NA,NA,NA,1.3508021390374376,1.0476412448977623,0,1,1,2,7,▇▅▂▁▁
+numeric,age_youngest,922,0.753475935828877,NA,NA,NA,9.660752306600425,6.302449197534867,0,4,9.5,15,28,▇▆▆▃▁

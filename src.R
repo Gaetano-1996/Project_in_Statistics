@@ -1356,10 +1356,9 @@ create_tiers_vector = function(df_names) {
   # Define tier variables (from main.R)
   t0 = c("sex", "age")
   t1 = c("education", "migrant")
-  t2 = c('dead_child', 'gave_birth')
-  t3 = c('nr_kids','age_youngest',"general_health", 'marital_status', 
-         'activity_status','dwell_ownership', 'sett_type', 
-         'partner_sat', 'hh_type','partner_status')
+  t2 = c("gave_birth", "dead_child")
+  t3 = c("general_health", 'marital_status','activity_status','dwell_ownership',
+          'sett_type', 'partner_sat', 'hh_type','partner_status','nr_kids','age_youngest')
   t4 = c("intentions")
   t5 = c("new_child")
   
@@ -1439,7 +1438,7 @@ ggs_discovery = function(
   cat("\n__ tPC Params ___\n",
       "Sig. lvl:",alpha,"\n",
       "N. tiers:",length(unique(tiers)),"\n",
-      "Context variables:",context.var,"\n")
+      "Context variables:",context.var,"\n\n")
   
   results = list()
   
@@ -1492,8 +1491,7 @@ ggs_discovery = function(
     mi_data = complete(mi_res, action = "all")
     cat("Running tPC...\n")
     disco = tpc::tpc(suffStat=mi_data, 
-                     indepTest=micd::mixMItest, 
-                     skel.method = "stable",
+                     indepTest=micd::mixMItest,
                      labels=colnames(df),
                      alpha=alpha, 
                      tiers=tiers, 

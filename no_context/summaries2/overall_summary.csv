@@ -1,0 +1,18 @@
+skim_type,skim_variable,n_missing,complete_rate,factor.ordered,factor.n_unique,factor.top_counts,factor.prop_na,factor.prop_0,factor.prop_1,factor.miss_40,factor.miss_50,factor.miss_70,factor.miss_90,numeric.mean,numeric.sd,numeric.p0,numeric.p25,numeric.p50,numeric.p75,numeric.p100,numeric.hist,numeric.prop_na,numeric.miss_50,numeric.miss_70,numeric.miss_90
+factor,new_child,0,1,FALSE,2,"no: 17757, yes: 2997",0,0.86,0.14,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,country,0,1,FALSE,7,"Geo: 4401, Aus: 3910, Rus: 3740, Fra: 3182",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,partner_sat,989,0.9523465356075937,TRUE,6,"com: 8759, no : 5290, mos: 4230, sat: 1109",0.048,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,migrant,36,0.9982653946227233,FALSE,2,"yes: 19187, no: 1531",0.002,0.07,0.93,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,education,309,0.9851113038450419,TRUE,6,"upp: 9024, ter: 6462, pos: 2602, low: 2177",0.015,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,marital_status,64,0.9969162571070637,FALSE,4,"mar: 10461, nev: 8382, div: 1620, wid: 227",0.003,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,partner_status,8,0.9996145321383829,FALSE,3,"co-: 13365, no : 5290, non: 2091",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,dead_child,7690,0.6294690180206226,FALSE,2,"no: 12786, yes: 278",0.371,0.98,0.02,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,gave_birth,1,0.9999518165172979,FALSE,2,"no: 19109, yes: 1644",0,0.92,0.08,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,activity_status,54,0.997398091934085,FALSE,10,"emp: 13592, une: 2033, loo: 2015, stu: 1677",0.003,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,dwell_ownership,0,1,FALSE,3,"own: 13907, not: 5970, oth: 877",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,general_health,2,0.9999036330345957,TRUE,5,"goo: 9523, ver: 5909, fai: 4596, bad: 635",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,hh_type,0,1,FALSE,9,"cou: 10052, liv: 3267, liv: 2246, cou: 2164",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,sett_type,0,1,FALSE,2,"urb: 13408, rur: 7346",0,0,0,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+factor,intentions,1851,0.9108123735183579,FALSE,2,"yes: 10773, no: 8130",0.089,0.43,0.57,FALSE,FALSE,FALSE,FALSE,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA
+numeric,nr_kids,0,1,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,1.2503131926375517,1.188223080389402,0,0,1,2,12,▇▁▁▁▁,0,FALSE,FALSE,FALSE
+numeric,age_youngest,7652,0.6312999903633034,NA,NA,NA,NA,NA,NA,NA,NA,NA,NA,7.821935582353763,5.953561579617723,0,3,7,12,56,▇▃▁▁▁,0.369,FALSE,FALSE,FALSE

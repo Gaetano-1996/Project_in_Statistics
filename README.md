@@ -31,6 +31,7 @@ Project_in_Statistics/
 ├── install_dependencies.R      # Package installation script
 ├── main.R                      # Main analysis pipeline
 ├── src.R                       # Function library with full documentation
+├── no_context                  # Experiment without age and sex
 ├── figures/                    # Analysis output visualizations
 │   ├── eda/                    # Exploratory data analysis plots
 │   ├── chains/                 # MICE convergence diagnostics
@@ -173,7 +174,7 @@ Key packages:
 
 ## 📋 R Session Information
 
-This analysis was developed and tested with the following R environment:
+The analysis was performed on a Mac Book Pro 14', M3 MAX (14c CPU, 40c GPU), 36 Gb of RAM with the following R environment:
 
 ```
 R version 4.5.0 (2025-04-11)
