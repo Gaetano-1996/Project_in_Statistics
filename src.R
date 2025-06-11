@@ -204,7 +204,7 @@ prepare_ggs_data = function(input_path,
   dw1 = dw1 %>% 
     mutate(across(everything(), ~ if_else(str_detect(., patterns), NA, .)))
   
-  # HARMONIZATION AND VARIABLE CREATION (Full processing from data_prep.R)
+  # HARMONIZATION AND VARIABLE CREATION 
   
   # country: country of interview 
   dw1[,
@@ -1145,7 +1145,7 @@ prepare_ggs_data = function(input_path,
   df_mix = df_mix %>% 
     mutate(across(where(is.factor), fct_drop))
   
-  # Apply missing data filtering (as done in eda.R)
+  # Apply missing data filtering 
   cat("Filtering observations with >25% missing values...\n")
   df_final = remove_incomplete_observations(df_mix, threshold = 0.25, verbose = TRUE)
   
@@ -1353,7 +1353,7 @@ create_tiers_vector = function(df_names) {
   # Returns: Named numeric vector with tier assignments (0-5)
   # Tiers: 0=background, 1=demographics, 2=past events, 3=current status, 4=intentions, 5=outcome
   
-  # Define tier variables (from main.R)
+  # Define tier variables 
   t0 = c("sex", "age")
   t1 = c("education", "migrant")
   t2 = c("gave_birth", "dead_child")
@@ -1490,6 +1490,7 @@ ggs_discovery = function(
     
     mi_data = complete(mi_res, action = "all")
     cat("Running tPC...\n")
+    set.seed(seed) # just in case
     disco = tpc::tpc(suffStat=mi_data, 
                      indepTest=micd::mixMItest,
                      labels=colnames(df),
